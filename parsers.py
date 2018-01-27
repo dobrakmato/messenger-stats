@@ -1,4 +1,24 @@
 from html.parser import HTMLParser
+from dateutil.parser import parse
+
+
+class HTMLMyNameParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.state = 0
+        self.my_name = None
+
+    def handle_starttag(self, tag, attrs):
+        if self.state == 0 and tag == 'h1':
+            self.state = 1
+
+    def handle_data(self, data: str):
+        if self.state == 1:
+            self.my_name = data.strip()
+            self.state = 2
+
+    def error(self, message):
+        print("Parsing Error: ", message)
 
 
 class HTMLMessagesParser(HTMLParser):
@@ -22,7 +42,7 @@ class HTMLMessagesParser(HTMLParser):
             if self.state == 'meta':
                 if ('class', 'user') in attrs:
                     self.state = 'meta_user'
-                if ('class', 'meta') in attrs:
+                if tag == 'span' and ('class', 'meta') in attrs:
                     self.state = 'meta_date'
 
     def handle_data(self, data: str):
@@ -35,7 +55,10 @@ class HTMLMessagesParser(HTMLParser):
                 self.current_message = (data, None, None)
                 self.state = 'meta'
             elif self.state == 'meta_date':
-                self.current_message = (self.current_message[0], None, data)
+                fixed_date = data[data.index(',') + 1:].replace('at ', '')
+                dt = parse(fixed_date)
+
+                self.current_message = (self.current_message[0], None, dt)
                 self.state = 'message'
             elif self.state == 'message':
                 msg = (self.current_message[0], data, self.current_message[2])
