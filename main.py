@@ -1,4 +1,5 @@
 import sys
+import time
 from parsers import HTMLMessagesParser, HTMLMessageIndexParser, HTMLMyNameParser
 from os import path
 
@@ -8,9 +9,11 @@ class FacebookStatistics:
         # Settings.
         self.root_path = root_path
         self.encoding = encoding
+        self.exclude_group_chats = False
         self.exhaustive_lists = False
         self.ignore_facebook_user = True
 
+        print('Setting: Exclude Group Chats: ', self.exclude_group_chats)
         print('Setting: Ignore Facebook User: ', self.ignore_facebook_user)
         print('Setting: Exhaustive lists: ', self.exhaustive_lists)
 
@@ -43,13 +46,16 @@ class FacebookStatistics:
 
             print(f'Found {conv_cnt} threads.')
 
+            time_start = time.time()
             i = 1
             for link, name in parser.links:
                 print(f'\r({i}/{conv_cnt}) Parsing conversation {name}...', end='')
                 participants, messages = self.parse_conversation(link)
-                self.conversations.append((name, participants, messages))
+                if not self.exclude_group_chats or len(participants) == 1:
+                    self.conversations.append((name, participants, messages))
                 i += 1
             print('')
+            print(f'Parsed {i-1} conversations in {time.time() - time_start} seconds')
 
     def global_stats(self):
         message_count = 0
@@ -209,12 +215,12 @@ class FacebookStatistics:
                 else:
                     convos[name][0] += 1
 
-        top_convos = reversed(sorted((value[0] + value[1], key, value) for (key, value) in convos.items()))
+        top_convos = sorted((value[0] + value[1], key, value) for (key, value) in convos.items())
 
         threshold = total_msgs / len(self.conversations)
 
         print('Conversations by messages exchanged:')
-        for msgs, convo, counts in top_convos:
+        for msgs, convo, counts in reversed(top_convos):
             if msgs != 0:
                 if self.exhaustive_lists or msgs > threshold:
                     print(f'{convo}\t{msgs} ({counts[1]} sent, {counts[0]} received)')
@@ -222,17 +228,171 @@ class FacebookStatistics:
         if not self.exhaustive_lists:
             print('And more...')
 
-        for i in range(10, 40, 2):
-            j = i / 10.0
+        for i in range(1, 20):
             messages_seen = 0
             people_seen = 0
-            for msgs, convo, counts in top_convos:
+            for msgs, convo, counts in reversed(top_convos):
                 if msgs != 0:
                     messages_seen += msgs
                     people_seen += 1
 
-                    if messages_seen > int(total_msgs / j):
-                        print(f'{100//j}% messages were sent by {people_seen} people.')
+                    if messages_seen > int(total_msgs / (1 + 0.1 * i)):
+                        print(f'{100//(1 + 0.1 * i)}% messages were sent by {people_seen} people.')
+                        break
+
+    def global_conversation_people_variability(self):
+        convos = {}
+        total_msgs = 0
+
+        for name, participants, messages in self.conversations:
+            total_msgs += len(messages)
+
+            if not str(participants) in convos:
+                convos[name] = [0, 0]  # others, me
+
+            for sender, cnts, date in messages:
+                if sender == self.my_name:
+                    convos[name][1] += 1
+                else:
+                    convos[name][0] += 1
+
+        top_convos = sorted((value[0] + value[1], key, value) for (key, value) in convos.items())
+
+        threshold = total_msgs / len(self.conversations)
+
+        for i in range(1, 20):
+            messages_seen = 0
+            people_seen = 0
+            for msgs, convo, counts in reversed(top_convos):
+                if msgs != 0:
+                    messages_seen += msgs
+                    people_seen += 1
+
+                    if messages_seen > int(total_msgs / (1 + 0.1 * i)):
+                        print(f'{100//(1 + 0.1 * i)}% messages were sent by {people_seen} people.')
+                        break
+
+    def global_msgs_before_reply(self):
+        me_msgs = 0
+        oth_msgs = 0
+
+        me_responses = 0
+        oth_responses = 0
+
+        last = 'me'
+
+        for name, participants, messages in self.conversations:
+            for sender, cnts, date in messages:
+                if sender == self.my_name:
+                    me_msgs += 1
+                    if not last == 'me':
+                        me_responses += 1
+                    last = 'me'
+                else:
+                    oth_msgs += 1
+                    if last == 'me':
+                        oth_responses += 1
+                    last = 'oth'
+
+        print(f'On average other person responded after {round(me_msgs/me_responses, 2)} your messages.')
+        print(f'On average you responded after {round(oth_msgs/oth_responses, 2)} messages from other person.')
+
+    def global_time_before_reply(self):
+        me_seconds_to_response = 0
+        oth_seconds_to_response = 0
+
+        me_responses = 0
+        oth_responses = 0
+
+        last = None
+        last_my_response = None
+        last_oth_response = None
+
+        for name, participants, messages in self.conversations:
+            for sender, cnts, date in messages:
+                if sender == self.my_name:
+                    last_my_response = date
+                    if not last == 'me':
+                        me_responses += 1
+                        me_seconds_to_response += abs((date - last_oth_response).total_seconds())
+                    last = 'me'
+                else:
+                    last_oth_response = date
+                    if last == 'me':
+                        oth_responses += 1
+                        oth_seconds_to_response += abs((date - last_my_response).total_seconds())
+                    last = 'oth'
+
+        print(f'On average other person responded after {round(me_seconds_to_response/me_responses, 2)} seconds.')
+        print(f'On average you responded after {round(oth_seconds_to_response/oth_responses, 2)} seconds.')
+
+    def global_most_used_words(self):
+        words = {}
+        my_words = {}
+
+        for name, participants, messages in self.conversations:
+            for sender, cnts, date in messages:
+                if cnts is not None:
+                    message_words = cnts.replace(',', '').strip().split()
+
+                    if sender == self.my_name:
+                        for word in message_words:
+                            if word not in my_words:
+                                my_words[word] = 0
+                            else:
+                                my_words[word] += 1
+                    else:
+                        for word in message_words:
+                            if word not in words:
+                                words[word] = 0
+                            else:
+                                words[word] += 1
+
+        top_words = sorted((value, key) for (key, value) in words.items())
+        my_top_words = sorted((value, key) for (key, value) in my_words.items())
+
+        print('Most used words in conversations:')
+        i = 0
+        for count, word in reversed(top_words):
+            if i < 100 or self.exhaustive_lists:
+                print(f'{word}\t{count}')
+            i += 1
+
+        if not self.exhaustive_lists and i > 100:
+            print('...')
+
+        print()
+        print('Most used words by you:')
+        i = 0
+        for count, word in reversed(my_top_words):
+            if i < 100 or self.exhaustive_lists:
+                print(f'{word}\t{count}')
+            i += 1
+
+        if not self.exhaustive_lists and i > 100:
+            print('...')
+
+    def globl_who_started_conv(self):
+        me_starts = 0
+        oth_starts = 0
+
+        for name, participants, messages in self.conversations:
+            last_msg_at = None
+            for sender, cnts, date in messages:
+                if last_msg_at is None:
+                    last_msg_at = date
+
+                ans_after = abs((date - last_msg_at).total_seconds())
+
+                if ans_after > 60 * 30:
+                    if sender == self.my_name:
+                        me_starts += 1
+                    else:
+                        oth_starts += 1
+                last_msg_at = date
+
+        print(f'Other people started conversation with you {oth_starts} times.')
+        print(f'You started conversation {me_starts} times.')
 
 
 if __name__ == '__main__':
@@ -266,6 +426,9 @@ if __name__ == '__main__':
     stats.top_conversations_by_messages()
 
     print('--------------------------------------------------------------')
+    stats.global_conversation_people_variability()
+
+    print('--------------------------------------------------------------')
     stats.global_hourly_histogram()
 
     print('--------------------------------------------------------------')
@@ -277,7 +440,14 @@ if __name__ == '__main__':
     print('--------------------------------------------------------------')
     stats.global_msg_lenghts()
 
+    print('--------------------------------------------------------------')
+    stats.global_msgs_before_reply()
 
-    # stats.global_msgs_before_reply()
-    # stats.global_most_used_words()
-    # stats.who_started_conv()
+    print('--------------------------------------------------------------')
+    stats.global_time_before_reply()
+
+    print('--------------------------------------------------------------')
+    stats.globl_who_started_conv()
+
+    print('--------------------------------------------------------------')
+    stats.global_most_used_words()
