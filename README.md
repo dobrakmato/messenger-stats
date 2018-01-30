@@ -1,5 +1,7 @@
-messengerstats
+messenger-stats
 ---------------
+
+![](https://i.imgur.com/HS6ko9c.png)
 
 ## Installation
 Run `pip3 install -r requirements.txt`
