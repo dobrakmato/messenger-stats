@@ -1,6 +1,7 @@
 import sys
 import time
 import statistics
+import codecs
 from parsers import HTMLMessagesParser, HTMLMessageIndexParser, HTMLMyNameParser
 from os import path
 
@@ -10,9 +11,9 @@ class FacebookStatistics:
         # Settings.
         self.root_path = root_path
         self.encoding = encoding
-        self.exclude_group_chats = False
+        self.exclude_group_chats = True
         self.exhaustive_lists = False
-        self.ignore_facebook_user = False
+        self.ignore_facebook_user = True
 
         print('Setting: Exclude Group Chats: ', self.exclude_group_chats)
         print('Setting: Ignore Facebook User: ', self.ignore_facebook_user)
@@ -66,41 +67,81 @@ class FacebookStatistics:
 
             return parser.participants, parser.messages
 
-    def global_stats(self):
-        statistics.general_stats(self.my_name, self.conversations)
+    def global_stats(self, conversations):
+        statistics.general_stats(self.my_name, conversations)
 
-    def global_hourly_histogram(self):
-        statistics.hourly_histogram(self.conversations)
+    def global_hourly_histogram(self, conversations):
+        statistics.hourly_histogram(conversations)
 
-    def global_years_histogram(self):
-        statistics.years_histogram(self.conversations)
+    def global_years_histogram(self, conversations):
+        statistics.years_histogram(conversations)
 
-    def global_day_in_week_histogram(self):
-        statistics.day_in_week_histogram(self.conversations)
+    def global_day_in_week_histogram(self, conversations):
+        statistics.day_in_week_histogram(conversations)
 
-    def global_msg_lenghts(self):
-        statistics.msg_lenghts(self.my_name, self.conversations)
+    def global_msg_lenghts(self, conversations):
+        statistics.msg_lenghts(self.my_name, conversations)
 
-    def top_conversations_by_chars(self):
-        statistics.top_conversations_by_chars(self.my_name, self.conversations, self.exhaustive_lists)
+    def top_conversations_by_chars(self, conversations):
+        statistics.top_conversations_by_chars(self.my_name, conversations, self.exhaustive_lists)
 
-    def top_conversations_by_messages(self):
-        statistics.top_conversations_by_messages(self.my_name, self.conversations, self.exhaustive_lists)
+    def top_conversations_by_messages(self, conversations):
+        statistics.top_conversations_by_messages(self.my_name, conversations, self.exhaustive_lists)
 
-    def global_conversation_people_variability(self):
-        statistics.conversation_people_variability(self.my_name, self.conversations)
+    def global_conversation_people_variability(self, conversations):
+        statistics.conversation_people_variability(self.my_name, conversations)
 
-    def global_msgs_before_reply(self):
-        statistics.msgs_before_reply(self.my_name, self.conversations)
+    def global_msgs_before_reply(self, conversations):
+        statistics.msgs_before_reply(self.my_name, conversations)
 
-    def global_time_before_reply(self):
-        statistics.time_before_reply(self.my_name, self.conversations)
+    def global_time_before_reply(self, conversations):
+        statistics.time_before_reply(self.my_name, conversations)
 
-    def global_most_used_words(self):
-        statistics.most_used_words(self.my_name, self.conversations, self.exhaustive_lists)
+    def global_most_used_words(self, conversations):
+        statistics.most_used_words(self.my_name, conversations, self.exhaustive_lists)
 
-    def globl_who_started_conv(self):
-        statistics.who_started_conv(self.my_name, self.conversations)
+    def globl_who_started_conv(self, conversations):
+        statistics.who_started_conv(self.my_name, conversations)
+
+    def all_global_stats(self):
+        self.all_stats(self.conversations)
+
+    def all_stats(self, conversations):
+        print('--------------------------------------------------------------')
+        self.global_stats(conversations)
+
+        print('--------------------------------------------------------------')
+        self.top_conversations_by_chars(conversations)
+
+        print('--------------------------------------------------------------')
+        self.top_conversations_by_messages(conversations)
+
+        print('--------------------------------------------------------------')
+        self.global_conversation_people_variability(conversations)
+
+        print('--------------------------------------------------------------')
+        self.global_hourly_histogram(conversations)
+
+        print('--------------------------------------------------------------')
+        self.global_years_histogram(conversations)
+
+        print('--------------------------------------------------------------')
+        self.global_day_in_week_histogram(conversations)
+
+        print('--------------------------------------------------------------')
+        self.global_msg_lenghts(conversations)
+
+        print('--------------------------------------------------------------')
+        self.global_msgs_before_reply(conversations)
+
+        print('--------------------------------------------------------------')
+        self.global_time_before_reply(conversations)
+
+        print('--------------------------------------------------------------')
+        self.globl_who_started_conv(conversations)
+
+        print('--------------------------------------------------------------')
+        self.global_most_used_words(conversations)
 
 
 if __name__ == '__main__':
@@ -124,38 +165,16 @@ if __name__ == '__main__':
     stats = FacebookStatistics(p)
     stats.parse_all_messages()
 
-    print('--------------------------------------------------------------')
-    stats.global_stats()
+    stats.all_global_stats()
 
-    print('--------------------------------------------------------------')
-    stats.top_conversations_by_chars()
+    print('\n\n')
+    print('Printing statistics for each conversation. Conversations with less than 100 messages will be skipped.')
+    print('\n\n')
 
-    print('--------------------------------------------------------------')
-    stats.top_conversations_by_messages()
-
-    print('--------------------------------------------------------------')
-    stats.global_conversation_people_variability()
-
-    print('--------------------------------------------------------------')
-    stats.global_hourly_histogram()
-
-    print('--------------------------------------------------------------')
-    stats.global_years_histogram()
-
-    print('--------------------------------------------------------------')
-    stats.global_day_in_week_histogram()
-
-    print('--------------------------------------------------------------')
-    stats.global_msg_lenghts()
-
-    print('--------------------------------------------------------------')
-    stats.global_msgs_before_reply()
-
-    print('--------------------------------------------------------------')
-    stats.global_time_before_reply()
-
-    print('--------------------------------------------------------------')
-    stats.globl_who_started_conv()
-
-    print('--------------------------------------------------------------')
-    stats.global_most_used_words()
+    for conversation in stats.conversations:
+        if len(conversation[2]) >= 100:
+            print('\n\n')
+            print('+============================================================+')
+            print(f'|{conversation[0]:^60}|')
+            print('|============================================================|')
+            stats.all_stats([conversation])

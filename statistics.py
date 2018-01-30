@@ -2,6 +2,20 @@ import datetime
 from typing import List, Tuple
 
 
+def safe_div(a, b):
+    """
+    Safe division operation. When b is equal to zero, this function returns 0.
+    Otherwise it returns result of a divided by non-zero b.
+    
+    :param a: number a
+    :param b: number b
+    :return: a divided by b or zero
+    """
+    if b == 0:
+        return 0
+    return a / b
+
+
 def general_stats(self_name: str, conversations: List[Tuple[str, List[str], List[Tuple[str, str, datetime.datetime]]]]):
     message_count = 0
     conversation_count = 0
@@ -26,12 +40,12 @@ def general_stats(self_name: str, conversations: List[Tuple[str, List[str], List
         unique_people = unique_people | set(participants)
 
     print(f'You have exchanged {message_count} messages total.')
-    print(f'You have sent {my_messages} ({round(my_messages*100/message_count, 2)}%) ' +
+    print(f'You have sent {my_messages} ({round(safe_div(my_messages*100, message_count), 2)}%) ' +
           f'messages and received {message_count - my_messages} ' +
-          f'({round((message_count - my_messages)*100/message_count, 2)}%) total.')
+          f'({round(safe_div((message_count - my_messages)*100, message_count), 2)}%) total.')
 
     print(f'You have exchanged {characters_count} characters in messages total. ' +
-          f'({round(my_characters*100/characters_count, 2)}% were sent by you)')
+          f'({round(safe_div(my_characters*100, characters_count), 2)}% were sent by you)')
 
     print(f'You are in {conversation_count} conversations.')
     print(f'You talked to {len(unique_people)} different people.')
@@ -71,7 +85,7 @@ def day_in_week_histogram(conversations: List[Tuple[str, List[str], List[Tuple[s
 
     print('Day in week histogram (You exchange most messages at):')
     days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-    for i in range(6):
+    for i in range(7):
         print(f'{days[i]}\t{histo[i]}')
 
 
@@ -102,9 +116,9 @@ def msg_lenghts(self_name: str, conversations: List[Tuple[str, List[str], List[T
     print(f'  Your longest message has {self_max} characters')
     print(f'  Longest message you received has {other_max} characters')
 
-    print(f'Average message length is {round((self_total+other_total)/(self_cnt+other_cnt), 2)} characters')
-    print(f'  Your average is {round(self_total/self_cnt, 2)} characters')
-    print(f'  Average of messages you received {round(other_total/other_cnt, 2)} characters')
+    print(f'Average message length is {round(safe_div((self_total+other_total), (self_cnt+other_cnt)), 2)} characters')
+    print(f'  Your average is {round(safe_div(self_total, self_cnt), 2)} characters')
+    print(f'  Average of messages you received {round(safe_div(other_total, other_cnt), 2)} characters')
 
     print(f'Based on {self_cnt+other_cnt} messages')
 
@@ -220,7 +234,7 @@ def msgs_before_reply(self_name: str,
         for sender, cnts, date in messages:
             if sender == self_name:
                 me_msgs += 1
-                if not last == 'me':
+                if last == 'oth':
                     me_responses += 1
                 last = 'me'
             else:
@@ -229,8 +243,8 @@ def msgs_before_reply(self_name: str,
                     oth_responses += 1
                 last = 'oth'
 
-    print(f'On average other person responded after {round(me_msgs/me_responses, 2)} your messages.')
-    print(f'On average you responded after {round(oth_msgs/oth_responses, 2)} messages from other person.')
+    print(f'On average other person responded after {round(safe_div(me_msgs, me_responses), 2)} your messages.')
+    print(f'On average you responded after {round(safe_div(oth_msgs, oth_responses), 2)} messages from other person.')
 
 
 def time_before_reply(self_name: str,
@@ -241,15 +255,15 @@ def time_before_reply(self_name: str,
     me_responses = 0
     oth_responses = 0
 
-    last = None
-    last_my_response = None
-    last_oth_response = None
-
     for name, participants, messages in conversations:
+        last = None
+        last_my_response = None
+        last_oth_response = None
+
         for sender, cnts, date in messages:
             if sender == self_name:
                 last_my_response = date
-                if not last == 'me':
+                if last == 'oth':
                     me_responses += 1
                     me_seconds_to_response += abs((date - last_oth_response).total_seconds())
                 last = 'me'
@@ -260,8 +274,9 @@ def time_before_reply(self_name: str,
                     oth_seconds_to_response += abs((date - last_my_response).total_seconds())
                 last = 'oth'
 
-    print(f'On average other person responded after {round(me_seconds_to_response/me_responses, 2)} seconds.')
-    print(f'On average you responded after {round(oth_seconds_to_response/oth_responses, 2)} seconds.')
+    print(f'On average other person responded ' +
+          f'after {round(safe_div(me_seconds_to_response, me_responses), 2)} seconds.')
+    print(f'On average you responded after {round(safe_div(oth_seconds_to_response, oth_responses), 2)} seconds.')
 
 
 def most_used_words(self_name: str,
@@ -291,6 +306,9 @@ def most_used_words(self_name: str,
     top_words = sorted((value, key) for (key, value) in words.items())
     my_top_words = sorted((value, key) for (key, value) in my_words.items())
 
+    print(f'There are {len(top_words)} different words in conversation(s).')
+    print(f'You used {len(my_top_words)} different words.')
+    print()
     print('Most used words in conversations:')
     i = 0
     for count, word in reversed(top_words):
