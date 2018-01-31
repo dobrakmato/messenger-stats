@@ -3,6 +3,10 @@ from dateutil.parser import parse
 
 
 class HTMLMyNameParser(HTMLParser):
+    """
+    Used for parsing the name of person whose archive is being processed.
+    """
+
     def __init__(self):
         super().__init__()
         self.state = 0
@@ -22,6 +26,10 @@ class HTMLMyNameParser(HTMLParser):
 
 
 class HTMLMessagesParser(HTMLParser):
+    """
+    Parses one conversation HTML file from Facebook export tool.
+    """
+
     def __init__(self):
         super().__init__()
 
@@ -78,6 +86,10 @@ class HTMLMessagesParser(HTMLParser):
 
 
 class HTMLMessageIndexParser(HTMLParser):
+    """
+    Parses conversations (threads) index file generated from Facebook export tool.
+    """
+
     def __init__(self, ignore_facebook_user: bool = True):
         super().__init__()
         self.state = 0

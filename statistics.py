@@ -1,9 +1,9 @@
-import datetime
+from custom_types import NamedConversation
 from utils import safe_div
 from typing import List, Tuple
 
 
-def general_stats(self_name: str, conversations: List[Tuple[str, List[str], List[Tuple[str, str, datetime.datetime]]]]):
+def general_stats(self_name: str, conversations: List[NamedConversation]):
     message_count = 0
     conversation_count = 0
     unique_people = set()
@@ -38,7 +38,7 @@ def general_stats(self_name: str, conversations: List[Tuple[str, List[str], List
     print(f'You talked to {len(unique_people)} different people.')
 
 
-def hourly_histogram(conversations: List[Tuple[str, List[str], List[Tuple[str, str, datetime.datetime]]]]):
+def hourly_histogram(conversations: List[NamedConversation]):
     histo = [0 for _ in range(24)]
 
     for name, participants, messages in conversations:
@@ -50,7 +50,7 @@ def hourly_histogram(conversations: List[Tuple[str, List[str], List[Tuple[str, s
         print(f'{i:02}:00 - {i+1:02}:00\t{histo[i]}')
 
 
-def years_histogram(conversations: List[Tuple[str, List[str], List[Tuple[str, str, datetime.datetime]]]]):
+def years_histogram(conversations: List[NamedConversation]):
     histo = [0 for _ in range(100)]
 
     for name, participants, messages in conversations:
@@ -63,7 +63,7 @@ def years_histogram(conversations: List[Tuple[str, List[str], List[Tuple[str, st
             print(f'{i+2000}\t{histo[i]}')
 
 
-def day_in_week_histogram(conversations: List[Tuple[str, List[str], List[Tuple[str, str, datetime.datetime]]]]):
+def day_in_week_histogram(conversations: List[NamedConversation]):
     histo = [0 for _ in range(7)]
 
     for name, participants, messages in conversations:
@@ -76,7 +76,7 @@ def day_in_week_histogram(conversations: List[Tuple[str, List[str], List[Tuple[s
         print(f'{days[i]}\t{histo[i]}')
 
 
-def msg_lenghts(self_name: str, conversations: List[Tuple[str, List[str], List[Tuple[str, str, datetime.datetime]]]]):
+def msg_lenghts(self_name: str, conversations: List[NamedConversation]):
     self_max = 0
     self_total = 0
     self_cnt = 0
@@ -110,9 +110,7 @@ def msg_lenghts(self_name: str, conversations: List[Tuple[str, List[str], List[T
     print(f'Based on {self_cnt+other_cnt} messages')
 
 
-def top_conversations_by_chars(self_name: str,
-                               conversations: List[Tuple[str, List[str], List[Tuple[str, str, datetime.datetime]]]],
-                               exhaustive_lists: bool):
+def top_conversations_by_chars(self_name: str, conversations: List[NamedConversation], exhaustive_lists: bool):
     convos = {}
     total_msgs = 0
 
@@ -142,9 +140,7 @@ def top_conversations_by_chars(self_name: str,
         print('And more...')
 
 
-def top_conversations_by_messages(self_name: str,
-                                  conversations: List[Tuple[str, List[str], List[Tuple[str, str, datetime.datetime]]]],
-                                  exhaustive_lists: bool):
+def top_conversations_by_messages(self_name: str, conversations: List[NamedConversation], exhaustive_lists: bool):
     convos = {}
     total_msgs = 0
 
@@ -174,9 +170,7 @@ def top_conversations_by_messages(self_name: str,
         print('And more...')
 
 
-def conversation_people_variability(self_name: str,
-                                    conversations: List[
-                                        Tuple[str, List[str], List[Tuple[str, str, datetime.datetime]]]]):
+def conversation_people_variability(self_name: str, conversations: List[NamedConversation]):
     convos = {}
     total_msgs = 0
 
@@ -207,8 +201,7 @@ def conversation_people_variability(self_name: str,
                     break
 
 
-def msgs_before_reply(self_name: str,
-                      conversations: List[Tuple[str, List[str], List[Tuple[str, str, datetime.datetime]]]]):
+def msgs_before_reply(self_name: str, conversations: List[NamedConversation]):
     me_msgs = 0
     oth_msgs = 0
 
@@ -234,8 +227,7 @@ def msgs_before_reply(self_name: str,
     print(f'On average you responded after {round(safe_div(oth_msgs, oth_responses), 2)} messages from other person.')
 
 
-def time_before_reply(self_name: str,
-                      conversations: List[Tuple[str, List[str], List[Tuple[str, str, datetime.datetime]]]]):
+def time_before_reply(self_name: str, conversations: List[NamedConversation]):
     me_seconds_to_response = 0
     oth_seconds_to_response = 0
 
@@ -266,9 +258,7 @@ def time_before_reply(self_name: str,
     print(f'On average you responded after {round(safe_div(oth_seconds_to_response, oth_responses), 2)} seconds.')
 
 
-def most_used_words(self_name: str,
-                    conversations: List[Tuple[str, List[str], List[Tuple[str, str, datetime.datetime]]]],
-                    exhaustive_lists: bool):
+def most_used_words(self_name: str, conversations: List[NamedConversation], exhaustive_lists: bool):
     words = {}
     my_words = {}
 
@@ -312,8 +302,7 @@ def most_used_words(self_name: str,
         i += 1
 
 
-def who_started_conv(self_name: str,
-                     conversations: List[Tuple[str, List[str], List[Tuple[str, str, datetime.datetime]]]]):
+def who_started_conv(self_name: str, conversations: List[NamedConversation]):
     me_starts = 0
     oth_starts = 0
 
