@@ -1,6 +1,6 @@
+from typing import List
 from custom_types import NamedConversation
 from utils import safe_div
-from typing import List, Tuple
 
 
 def general_stats(self_name: str, conversations: List[NamedConversation]):
