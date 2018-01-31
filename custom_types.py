@@ -1,7 +1,8 @@
 import datetime
-from typing import Tuple, List
+from typing import NamedTuple, List
 
-Message = Tuple[str, str, datetime.datetime]
+Message = NamedTuple('Message', [('sender', str), ('text', str), ('created_at', datetime.datetime)])
 Participants = List[str]
-Conversation = Tuple[Participants, Message]
-NamedConversation = Tuple[str, Participants, Message]
+Conversation = NamedTuple('Conversation', [('participants', Participants), ('messages', List[Message])])
+NamedConversation = NamedTuple('NamedConversation',
+                               [('name', str), ('participants', Participants), ('messages', List[Message])])
