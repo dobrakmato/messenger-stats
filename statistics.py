@@ -4,6 +4,12 @@ from utils import safe_div
 
 
 def general_stats(self_name: str, conversations: List[NamedConversation]):
+    """
+    Generates general statistics for specified list of conversations.
+    :param self_name: name of the person which should be considered as "myself"
+    :param conversations: list of conversations
+    :return: 
+    """
     message_count = 0
     conversation_count = 0
     unique_people = set()
@@ -13,15 +19,15 @@ def general_stats(self_name: str, conversations: List[NamedConversation]):
     my_messages = 0
     my_characters = 0
 
-    for name, participants, messages in conversations:
+    for _, participants, messages in conversations:
         message_count += len(messages)
 
-        for sender, cnts, date in messages:
-            characters_count += 0 if cnts is None else len(cnts)
+        for sender, text, _ in messages:
+            characters_count += 0 if text is None else len(text)
 
             if sender == self_name:
                 my_messages += 1
-                my_characters += 0 if cnts is None else len(cnts)
+                my_characters += 0 if text is None else len(text)
 
         conversation_count += 1
         unique_people = unique_people | set(participants)
@@ -39,44 +45,70 @@ def general_stats(self_name: str, conversations: List[NamedConversation]):
 
 
 def hourly_histogram(conversations: List[NamedConversation]):
-    histo = [0 for _ in range(24)]
+    """
+    Generates hourly histogram of messages sent from specified list of conversations.
+    :param conversations: list of conversations
+    :return: 
+    """
+    hours = [0 for _ in range(24)]
 
     for name, participants, messages in conversations:
-        for sender, cnts, date in messages:
-            histo[date.hour] += 1
+        for sender, text, date in messages:
+            hours[date.hour] += 1
 
     print('Hourly histogram (You exchange most messages at):')
     for i in range(24):
-        print(f'{i:02}:00 - {i+1:02}:00\t{histo[i]}')
+        print(f'{i:02}:00 - {i+1:02}:00\t{hours[i]}')
 
 
-def years_histogram(conversations: List[NamedConversation]):
-    histo = [0 for _ in range(100)]
+def yearly_histogram(conversations: List[NamedConversation]):
+    """
+    Generates yearly histogram of messages sent from specified list of conversations.
+    :param conversations: list of conversations
+    :return: 
+    """
+
+    # Should be enough for next approximately 100 years.
+    years = [0 for _ in range(100)]
 
     for name, participants, messages in conversations:
-        for sender, cnts, date in messages:
-            histo[date.year - 2000] += 1
+        for sender, text, date in messages:
+            years[date.year - 2000] += 1
 
     print('Yearly histogram (You exchange most messages in the year):')
     for i in range(100):
-        if histo[i] != 0:
-            print(f'{i+2000}\t{histo[i]}')
+        if years[i] != 0:
+            print(f'{i+2000}\t{years[i]}')
 
 
 def day_in_week_histogram(conversations: List[NamedConversation]):
-    histo = [0 for _ in range(7)]
+    """
+    Generates yearly histogram of messages sent from specified list of conversations.
+    :param conversations: list of conversations
+    :return: 
+    """
+    day_in_week = [0 for _ in range(7)]
+
+    # Names are indexed the same way the days are indexed in strftime()
+    # method as specified by Python documentation "Weekday as a decimal number [0(Sunday),6]."
+    day_in_week_names = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
     for name, participants, messages in conversations:
-        for sender, cnts, date in messages:
-            histo[int(date.strftime('%w'))] += 1
+        for sender, text, date in messages:
+            day_in_week[int(date.strftime('%w'))] += 1
 
     print('Day in week histogram (You exchange most messages at):')
-    days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
     for i in range(7):
-        print(f'{days[i]}\t{histo[i]}')
+        print(f'{day_in_week_names[i]}\t{day_in_week[i]}')
 
 
-def msg_lenghts(self_name: str, conversations: List[NamedConversation]):
+def messages_lengths(self_name: str, conversations: List[NamedConversation]):
+    """
+    Generates statistics about message length from specified list of conversations.
+    :param self_name: name of the person which should be considered as "myself"
+    :param conversations: list of conversations
+    :return: 
+    """
     self_max = 0
     self_total = 0
     self_cnt = 0
@@ -86,17 +118,19 @@ def msg_lenghts(self_name: str, conversations: List[NamedConversation]):
     other_cnt = 0
 
     for name, participants, messages in conversations:
-        for sender, cnts, date in messages:
-            if cnts is not None:
-                l = len(cnts)
+        for sender, text, date in messages:
+            # Some messages (eg. when sending image only) have no text content so
+            # we need to check that before actually computing length of the text.
+            if text is not None:
+                message_length = len(text)
 
                 if sender == self_name:
-                    self_total += l
-                    self_max = max(self_max, l)
+                    self_total += message_length
+                    self_max = max(self_max, message_length)
                     self_cnt += 1
                 else:
-                    other_total += l
-                    other_max = max(other_max, l)
+                    other_total += message_length
+                    other_max = max(other_max, message_length)
                     other_cnt += 1
 
     print(f'Longest message has {max(self_max, other_max)} characters')
@@ -111,60 +145,87 @@ def msg_lenghts(self_name: str, conversations: List[NamedConversation]):
 
 
 def top_conversations_by_chars(self_name: str, conversations: List[NamedConversation], exhaustive_lists: bool):
-    convos = {}
-    total_msgs = 0
+    """
+    Generates list of top conversations ordered by characters exchanged from specified
+    list of conversations.
+    
+    :param self_name: name of the person which should be considered as "myself"
+    :param conversations: list of conversations
+    :param exhaustive_lists: whether the list should include all conversations
+    :return: 
+    """
+    conversation_counts = {}
+    total_messages = 0  # Used for computing threshold when not using exhaustive lists.
 
     for name, participants, messages in conversations:
-        total_msgs += len(messages)
+        total_messages += len(messages)
 
-        if not str(participants) in convos:
-            convos[name] = [0, 0]  # others, me
+        # Create counters for each conversation not present in list of conversations.
+        if not str(participants) in conversation_counts:
+            conversation_counts[name] = [0, 0]  # others, me
 
-        for sender, cnts, date in messages:
+        for sender, text, _ in messages:
             if sender == self_name:
-                convos[name][1] += 0 if cnts is None else len(cnts)
+                conversation_counts[name][1] += 0 if text is None else len(text)
             else:
-                convos[name][0] += 0 if cnts is None else len(cnts)
+                conversation_counts[name][0] += 0 if text is None else len(text)
 
-    top_convos = reversed(sorted((value[0] + value[1], key, value) for (key, value) in convos.items()))
+    top_conversations = reversed(
+        sorted((value[0] + value[1], key, value) for (key, value) in conversation_counts.items()))
 
-    threshold = total_msgs / len(conversations)
+    # Threshold is used to prevent outputting lot of conversations
+    # with very little messages. Currently it is calculated as average
+    # message count in conversation.
+    threshold = total_messages / len(conversation_counts)
 
     print('Conversations by characters exchanged:')
-    for chars, convo, counts in top_convos:
-        if chars != 0:
-            if exhaustive_lists or chars > threshold:
-                print(f'{convo}\t{chars} ({counts[1]} sent, {counts[0]} received)')
+    for characters, conversation_name, counts in top_conversations:
+        if characters != 0:
+            if exhaustive_lists or characters > threshold:
+                print(f'{conversation_name}\t{characters} ({counts[1]} sent, {counts[0]} received)')
 
     if not exhaustive_lists:
         print('And more...')
 
 
 def top_conversations_by_messages(self_name: str, conversations: List[NamedConversation], exhaustive_lists: bool):
-    convos = {}
-    total_msgs = 0
+    """
+    Generates list of top conversations ordered by messages exchanged from specified
+    list of conversations.
+
+    :param self_name: name of the person which should be considered as "myself"
+    :param conversations: list of conversations
+    :param exhaustive_lists: whether the list should include all conversations
+    :return: 
+    """
+    conversation_counts = {}
+    total_messages = 0  # Used for computing threshold when not using exhaustive lists.
 
     for name, participants, messages in conversations:
-        total_msgs += len(messages)
+        total_messages += len(messages)
 
-        if not str(participants) in convos:
-            convos[name] = [0, 0]  # others, me
+        # Create counters for each conversation not present in list of conversations.
+        if not str(participants) in conversation_counts:
+            conversation_counts[name] = [0, 0]  # others, me
 
-        for sender, cnts, date in messages:
+        for sender, _, _ in messages:
             if sender == self_name:
-                convos[name][1] += 1
+                conversation_counts[name][1] += 1
             else:
-                convos[name][0] += 1
+                conversation_counts[name][0] += 1
 
-    top_convos = sorted((value[0] + value[1], key, value) for (key, value) in convos.items())
+    top_conversations = sorted((value[0] + value[1], key, value) for (key, value) in conversation_counts.items())
 
-    threshold = total_msgs / len(conversations)
+    # Threshold is used to prevent outputting lot of conversations
+    # with very little messages. Currently it is calculated as average
+    # message count in conversation.
+    threshold = total_messages / len(conversations)
 
     print('Conversations by messages exchanged:')
-    for msgs, convo, counts in reversed(top_convos):
-        if msgs != 0:
-            if exhaustive_lists or msgs > threshold:
-                print(f'{convo}\t{msgs} ({counts[1]} sent, {counts[0]} received)')
+    for messages, conversation_name, counts in reversed(top_conversations):
+        if messages != 0:
+            if exhaustive_lists or messages > threshold:
+                print(f'{conversation_name}\t{messages} ({counts[1]} sent, {counts[0]} received)')
 
     if not exhaustive_lists:
         print('And more...')

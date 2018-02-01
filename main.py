@@ -1,11 +1,10 @@
-from time import time
 import statistics
+from time import time
 from sys import argv
 from typing import List
 from custom_types import Conversation, NamedConversation
 from parsers import HTMLMessagesParser, HTMLMessageIndexParser, HTMLMyNameParser
 from os import path
-
 from utils import separator
 
 
@@ -14,13 +13,15 @@ class FacebookStatistics:
     Main entry-point.
     """
 
-    def __init__(self, root_path: str, encoding: str = 'utf-8'):
-        # Settings.
+    def __init__(self, root_path: str, encoding: str = 'utf-8', exclude_group_chats=True, exhaustive_lists=False,
+                 ignore_facebook_user=True):
         self.root_path = root_path
         self.encoding = encoding
-        self.exclude_group_chats = True
-        self.exhaustive_lists = False
-        self.ignore_facebook_user = True
+
+        # Settings.
+        self.exclude_group_chats = exclude_group_chats
+        self.exhaustive_lists = exhaustive_lists
+        self.ignore_facebook_user = ignore_facebook_user
 
         self.print_settings()
 
@@ -45,10 +46,10 @@ class FacebookStatistics:
         """
         print('Parsing profile...')
         with open(path.join(self.root_path, 'index.htm'), encoding=self.encoding) as f:
-            cnts = f.read()
+            file_content = f.read()
 
             parser = HTMLMyNameParser()
-            parser.feed(cnts)
+            parser.feed(file_content)
 
             self.my_name = parser.my_name
         print(f'Person name: {self.my_name}')
@@ -59,23 +60,26 @@ class FacebookStatistics:
          discovered conversation (thread) by calling the parse_conversation() method.
         """
         with open(path.join(self.root_path, 'html', 'messages.htm'), encoding=self.encoding) as f:
-            cnts = f.read()
+            file_content = f.read()
 
             print('Parsing message index...')
             parser = HTMLMessageIndexParser(self.ignore_facebook_user)
-            parser.feed(cnts)
+            parser.feed(file_content)
 
-            conv_cnt = len(parser.links)
+            conversation_count = len(parser.links)
 
-            print(f'Found {conv_cnt} threads.')
+            print(f'Found {conversation_count} threads.')
 
             time_start = time()
             i = 1
             for link, name in parser.links:
-                print(f'\r({i}/{conv_cnt}) Parsing conversation {name}...', end='')
+                print(f'\r({i}/{conversation_count}) Parsing conversation {name}...', end='')
                 participants, messages = self.parse_conversation(link)
+
+                # Exclude conversation with self and group conversations if setting is enabled
                 if not self.exclude_group_chats or len(participants) == 1:
-                    self.conversations.append((name, participants, messages))
+                    named_conversation = (name, participants, messages)
+                    self.conversations.append(named_conversation)
                 i += 1
             print('')
             print(f'Parsed {i-1} conversations in {time() - time_start} seconds')
@@ -89,10 +93,10 @@ class FacebookStatistics:
         """
 
         with open(path.join(self.root_path, 'messages', messages_file), encoding=self.encoding) as f:
-            cnts = f.read()
+            file_content = f.read()
 
             parser = HTMLMessagesParser()
-            parser.feed(cnts)
+            parser.feed(file_content)
 
             return parser.participants, parser.messages
 
@@ -124,13 +128,13 @@ class FacebookStatistics:
         statistics.hourly_histogram(conversations)
 
     def years_histogram(self, conversations: List[NamedConversation]):
-        statistics.years_histogram(conversations)
+        statistics.yearly_histogram(conversations)
 
     def day_in_week_histogram(self, conversations: List[NamedConversation]):
         statistics.day_in_week_histogram(conversations)
 
     def msg_lenghts(self, conversations: List[NamedConversation]):
-        statistics.msg_lenghts(self.my_name, conversations)
+        statistics.messages_lengths(self.my_name, conversations)
 
     def top_conversations_by_chars(self, conversations: List[NamedConversation]):
         statistics.top_conversations_by_chars(self.my_name, conversations, self.exhaustive_lists)
@@ -175,7 +179,7 @@ if __name__ == '__main__':
         print('Error: Provided path does not contain required sub-folders html and messages!')
         exit(1)
 
-    # Everything seems to be alright so let's start with parsing everything.
+    # Everything seems to be alright so let's start parsing everything.
     separator()
     stats = FacebookStatistics(p)
     stats.parse_all_messages()

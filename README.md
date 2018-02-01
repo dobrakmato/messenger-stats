@@ -7,10 +7,10 @@ messenger-stats
 Run `pip3 install -r requirements.txt`
 
 ## Usage
-Download archive of all you data from Facebook using the
+Download archive of all you data from Facebook using their awesome
  [export tool](https://www.facebook.com/help/302796099745838).
 
-Unzip the archive to folder of your choice.
+Unzip contents of the archive to folder of your choice.
 
 ### Run interactively
 Run script interactively and paste path to console when asked for it:
@@ -31,14 +31,20 @@ Export root: (enter path here)
 Or run the script with the folder provided as first argument to script.
 
 ```
-./main.py path/to/unzipped/archive
+./main.py /path/to/unzipped/archive
 ```
 
+```
+You invoked script as interactive shell.
+--------------------------------------------------------------
+Using provided argument as path:  /path/to/unzipped/archive
+--------------------------------------------------------------
+```
 
-### Use programmatically.
+### Use programmatically
 
 You can also use script programmatically by creating instance
-of `FacebookStatistics` and then calling its methods.
+of `FacebookStatistics` class and then calling its methods.
 
 ```python
 stats = FacebookStatistics('/path/to/unzipped/archive')
