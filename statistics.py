@@ -176,7 +176,7 @@ def top_conversations_by_chars(self_name: str, conversations: List[NamedConversa
     # Threshold is used to prevent outputting lot of conversations
     # with very little messages. Currently it is calculated as average
     # message count in conversation.
-    threshold = total_messages / len(conversation_counts)
+    threshold = safe_div(total_messages, len(conversation_counts))
 
     print('Conversations by characters exchanged:')
     for characters, conversation_name, counts in top_conversations:
@@ -219,7 +219,7 @@ def top_conversations_by_messages(self_name: str, conversations: List[NamedConve
     # Threshold is used to prevent outputting lot of conversations
     # with very little messages. Currently it is calculated as average
     # message count in conversation.
-    threshold = total_messages / len(conversations)
+    threshold = safe_div(total_messages / len(conversations))
 
     print('Conversations by messages exchanged:')
     for messages, conversation_name, counts in reversed(top_conversations):
