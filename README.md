@@ -8,7 +8,20 @@ Run `pip3 install -r requirements.txt`
 
 ## Usage
 Download archive of all you data from Facebook using their awesome
- [export tool](https://www.facebook.com/help/302796099745838).
+ [export tool](https://www.facebook.com/settings).
+
+Go to Facebook settings, then click on *Your Facebook Information* tab.
+Choose item *Download Your Information*.
+
+![](https://i.imgur.com/sX8WP6A.png)
+
+Choose format **JSON** and media quality **Low**. Make sure at least
+**Messages** and **Profile Information** items are selected.
+
+![](https://i.imgur.com/84bi39I.png)
+
+Then click *Create File*. Facebook will then prepare ZIP archive
+with selected information, which you can feed into this script.
 
 Unzip contents of the archive to folder of your choice.
 

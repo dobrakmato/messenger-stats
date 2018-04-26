@@ -219,13 +219,14 @@ def top_conversations_by_messages(self_name: str, conversations: List[NamedConve
     # Threshold is used to prevent outputting lot of conversations
     # with very little messages. Currently it is calculated as average
     # message count in conversation.
-    threshold = safe_div(total_messages / len(conversations))
+    threshold = safe_div(total_messages, len(conversations))
 
     print('Conversations by messages exchanged:')
     for messages, conversation_name, counts in reversed(top_conversations):
         if messages != 0:
             if exhaustive_lists or messages > threshold:
-                print(f'{conversation_name}\t{messages} ({counts[1]} sent, {counts[0]} received)')
+                print(f'{conversation_name}\t{messages} ({round(safe_div(messages, total_messages), 2)}% of all msgs)' +
+                      ' ({counts[1]} sent, {counts[0]} received)')
 
     if not exhaustive_lists:
         print('And more...')

@@ -1,10 +1,14 @@
-import statistics
+import datetime
+import json
+import os
 from time import time
-from sys import argv
-from typing import List
-from custom_types import Conversation, NamedConversation
-from parsers import HTMLMessagesParser, HTMLMessageIndexParser, HTMLMyNameParser
 from os import path
+from sys import argv
+
+from typing import List
+
+import statistics
+from custom_types import NamedConversation
 from utils import separator
 
 
@@ -44,61 +48,78 @@ class FacebookStatistics:
         
         Name is than stored as field `my_name`.
         """
-        print('Parsing profile...')
-        with open(path.join(self.root_path, 'index.htm'), encoding=self.encoding) as f:
-            file_content = f.read()
-
-            parser = HTMLMyNameParser()
-            parser.feed(file_content)
-
-            self.my_name = parser.my_name
+        if path.isdir(path.join(self.root_path, 'profile_information')):
+            print('Parsing profile...')
+            doc = json.load(open(path.join(self.root_path, 'profile_information', 'profile_information.json'),
+                                 encoding=self.encoding))
+            self.my_name = doc['profile']['name']
+        else:
+            separator()
+            print('Profile Information section is not included in this export!')
+            print('Please provide your name (exactly as on Facebook) so we can ' +
+                  'differentiate your messages from messages of your friends.')
+            self.my_name = input('Your name (exactly as on Facebook): ').strip()
+            separator()
         print(f'Person name: {self.my_name}')
 
     def parse_all_messages(self) -> None:
         """
-        Parses conversations (threads) index and then automatically parses each 
-         discovered conversation (thread) by calling the parse_conversation() method.
+        Lists all threads in messages folder and parses each folder as one thread.
         """
-        with open(path.join(self.root_path, 'html', 'messages.htm'), encoding=self.encoding) as f:
-            file_content = f.read()
+        folders = os.listdir(path.join(self.root_path, 'messages'))
+        conversation_count = len(folders)
+        print(f'Found {conversation_count} threads.')
 
-            print('Parsing message index...')
-            parser = HTMLMessageIndexParser(self.ignore_facebook_user)
-            parser.feed(file_content)
+        time_start = time()
+        i = 0
+        for file in folders:
 
-            conversation_count = len(parser.links)
+            # Verify if the message file exists.
+            if not os.path.exists(path.join(self.root_path, 'messages', file, 'message.json')):
+                print(f'Warning: No message.json file for thread {file}! Skipping.')
+                continue
 
-            print(f'Found {conversation_count} threads.')
+            print(f'({i}/{conversation_count}) Parsing thread {file}...')
+            named_conversation = self.parse_conversation(file)
+            i += 1
 
-            time_start = time()
-            i = 1
-            for link, name in parser.links:
-                print(f'\r({i}/{conversation_count}) Parsing conversation {name}...', end='')
-                participants, messages = self.parse_conversation(link)
+            # Exclude conversation with self and group conversations if setting is enabled
+            if not self.exclude_group_chats or len(named_conversation[1]) == 1:
+                self.conversations.append(named_conversation)
 
-                # Exclude conversation with self and group conversations if setting is enabled
-                if not self.exclude_group_chats or len(participants) == 1:
-                    named_conversation = (name, participants, messages)
-                    self.conversations.append(named_conversation)
-                i += 1
-            print('')
-            print(f'Parsed {i-1} conversations in {time() - time_start} seconds')
+        print(f'Parsed {i-1} conversations in {time() - time_start} seconds.')
 
-    def parse_conversation(self, messages_file: str) -> Conversation:
+    def parse_conversation(self, thread_dir: str) -> NamedConversation:
         """
-        Parses conversation specified by message_file parameter and returns its participants and messages.
+        Parses conversation from JSON file specified by thread_dir parameter and returns 
+        its participants, title and messages.
         
-        :param messages_file: file to parse conversation from (24.html for example) 
+        :param thread_dir: directory to parse conversation from (AdamSulko_3c954401d0 for example) 
         :return: parsed conversation
         """
 
-        with open(path.join(self.root_path, 'messages', messages_file), encoding=self.encoding) as f:
-            file_content = f.read()
+        doc = json.load(
+            open(path.join(self.root_path, 'messages', thread_dir, 'message.json'), encoding=self.encoding))
 
-            parser = HTMLMessagesParser()
-            parser.feed(file_content)
+        messages = []
+        participants = doc.get('participants', set())
 
-            return parser.participants, parser.messages
+        # Convert JSON message objects to correct structure.
+        for msg in reversed(doc['messages']):
+            sender_name = msg.get('sender_name', '')
+
+            # Build participants array if the JSON document does not contain this information.
+            if isinstance(participants, set):
+                participants.add(sender_name)
+
+            if sender_name != '' or not self.ignore_facebook_user:
+                messages.append((
+                    sender_name,
+                    msg.get('content', ''),
+                    datetime.datetime.fromtimestamp(msg.get('timestamp'))
+                ))
+
+        return doc.get('title', ' '.join(participants)), list(participants), messages
 
     def all_stats(self, conversations: List[NamedConversation]):
         """
@@ -162,7 +183,7 @@ if __name__ == '__main__':
     print('You invoked script as interactive shell.')
     separator()
     print('Please enter path to unzipped Facebook export ' +
-          'directory (the one which contains subfolders: html, messages).')
+          'directory (the one which contains subfolder messages and JSON files).')
 
     # Check if user provided argument and wants to use it as root folder for
     # generating statistics from.
@@ -174,7 +195,7 @@ if __name__ == '__main__':
 
     # Verify that provided path is valid Facebook export archive by checking
     # the presence of most important folders and files.
-    if not path.isdir(path.join(p, 'html')) or not path.isdir(path.join(p, 'messages')):
+    if not path.isdir(path.join(p, 'messages')):
         separator()
         print('Error: Provided path does not contain required sub-folders html and messages!')
         exit(1)
