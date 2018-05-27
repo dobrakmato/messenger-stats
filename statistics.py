@@ -225,7 +225,8 @@ def top_conversations_by_messages(self_name: str, conversations: List[NamedConve
     for messages, conversation_name, counts in reversed(top_conversations):
         if messages != 0:
             if exhaustive_lists or messages > threshold:
-                print(f'{conversation_name}\t{messages} ({round(safe_div(messages, total_messages), 2)}% of all msgs)' +
+                print(f'{conversation_name}\t{messages}' +
+                      f' ({round(safe_div(messages, total_messages) * 100, 2)}% of all msgs)' +
                       f' ({counts[1]} sent, {counts[0]} received)')
 
     if not exhaustive_lists:
