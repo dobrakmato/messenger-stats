@@ -50,8 +50,28 @@ class FacebookStatistics:
         """
         if path.isdir(path.join(self.root_path, 'profile_information')):
             print('Parsing profile...')
-            doc = json.load(open(path.join(self.root_path, 'profile_information', 'profile_information.json'),
-                                 encoding=self.encoding))
+            with open(path.join(self.root_path, 'profile_information', 'profile_information.json'),
+                      encoding='raw_unicode_escape') as f:
+
+                # Facebook export tool produces invalid JSONs. Here we try to fix
+                # wrongly encoded characters.
+                encoded = f.read().encode('raw_unicode_escape')
+                decoded = encoded.decode()
+
+                # Also some of the control characters are not encoded correctly, so
+                # we remove all of them - we are safe to remove line break as JSON is
+                # valid without any whitespace.
+                for i in range(32):
+                    decoded = decoded.replace(chr(i), '')
+
+                try:
+                    doc = json.loads(decoded)
+                except JSONDecodeError as e:
+                    print(">>>>> JSON DECODE ERROR in profile_information")
+                    print(e)
+                    exit(1)
+                    return
+
             self.my_name = doc['profile']['name']
         else:
             separator()
