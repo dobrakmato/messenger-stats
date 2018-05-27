@@ -174,3 +174,4 @@ venv.bak/
 .idea/
 stats.txt
 statistics.txt
+error_file.json
