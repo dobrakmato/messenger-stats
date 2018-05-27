@@ -92,7 +92,7 @@ class FacebookStatistics:
 
         print(f'Parsed {i-1} conversations in {time() - time_start} seconds.')
 
-    def parse_conversation(self, thread_dir: str) -> NamedConversation | None:
+    def parse_conversation(self, thread_dir: str) -> NamedConversation:
         """
         Parses conversation from JSON file specified by thread_dir parameter and returns
         its participants, title and messages.
