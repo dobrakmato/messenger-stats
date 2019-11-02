@@ -72,7 +72,7 @@ class FacebookStatistics:
                     exit(1)
                     return
 
-            self.my_name = doc['profile']['name']
+            self.my_name = doc['profile']['name']['full_name']
         else:
             separator()
             print('Profile Information section is not included in this export!')
@@ -86,29 +86,36 @@ class FacebookStatistics:
         """
         Lists all threads in messages folder and parses each folder as one thread.
         """
-        folders = os.listdir(path.join(self.root_path, 'messages'))
-        conversation_count = len(folders)
-        print(f'Found {conversation_count} threads.')
+        subfolders = os.listdir(path.join(self.root_path, 'messages'))
 
         time_start = time()
         i = 0
-        for file in folders:
+        for subfolder in subfolders:
 
-            # Verify if the message file exists.
-            if not os.path.exists(path.join(self.root_path, 'messages', file, 'message.json')):
-                print(f'Warning: No message.json file for thread {file}! Skipping.')
-                continue
+            folders = os.listdir(path.join(self.root_path,
+                                           'messages',
+                                           subfolder))
 
-            print(f'({i}/{conversation_count}) Parsing thread {file}...')
-            named_conversation = self.parse_conversation(file)
-            i += 1
+            conversation_count = len(folders)
+            print(f'Found {conversation_count} threads in {subfolder}')
 
-            if named_conversation is None:
-                continue
+            for file in folders:
+                # Verify if the message file exists.
+                if not os.path.exists(path.join(self.root_path, 'messages', subfolder, file, 'message_1.json')):
+                    print(f'Warning: No message.json file for thread {file}! Skipping.')
+                    continue
 
-            # Exclude conversation with self and group conversations if setting is enabled
-            if not self.exclude_group_chats or len(named_conversation[1]) == 1:
-                self.conversations.append(named_conversation)
+                print(f'({i}/{conversation_count}) Parsing thread {file}...')
+                named_conversation = self.parse_conversation(path.join(subfolder, file))
+                i += 1
+
+                if named_conversation is None:
+                    continue
+
+                # Exclude conversation with self and group conversations if setting is enabled
+                if len(named_conversation[1]) > 1:
+                    if not (self.exclude_group_chats and len(named_conversation[1]) > 2):
+                        self.conversations.append(named_conversation)
 
         print(f'Parsed {i-1} conversations in {time() - time_start} seconds.')
 
@@ -120,7 +127,7 @@ class FacebookStatistics:
         :param thread_dir: directory to parse conversation from (AdamSulko_3c954401d0 for example)
         :return: parsed conversation
         """
-        with open(path.join(self.root_path, 'messages', thread_dir, 'message.json'),
+        with open(path.join(self.root_path, 'messages', thread_dir, 'message_1.json'),
                   encoding='raw_unicode_escape') as f:
 
             # Facebook export tool produces invalid JSONs. Here we try to fix
@@ -144,7 +151,7 @@ class FacebookStatistics:
                 return None
 
         messages = []
-        participants = doc.get('participants', set())
+        participants = list(map(lambda x: x['name'], doc.get('participants', set())))
 
         # Convert JSON message objects to correct structure.
         for msg in reversed(doc['messages']):
@@ -158,7 +165,7 @@ class FacebookStatistics:
                 messages.append((
                     sender_name,
                     msg.get('content', ''),
-                    datetime.datetime.fromtimestamp(msg.get('timestamp'))
+                    datetime.datetime.fromtimestamp(msg.get('timestamp_ms') / 1000)
                 ))
 
         return doc.get('title', ' '.join(participants)), list(participants), messages
