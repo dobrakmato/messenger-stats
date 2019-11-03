@@ -89,9 +89,8 @@ class FacebookStatistics:
         subfolders = os.listdir(path.join(self.root_path, 'messages'))
 
         time_start = time()
-        i = 0
         for subfolder in subfolders:
-
+            i = 0
             folders = os.listdir(path.join(self.root_path,
                                            'messages',
                                            subfolder))
