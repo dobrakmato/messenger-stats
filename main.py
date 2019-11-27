@@ -45,7 +45,7 @@ class FacebookStatistics:
     def parse_my_name(self) -> None:
         """
         Parses name of person whose archive is being processed.
-        
+
         Name is than stored as field `my_name`.
         """
         if path.isdir(path.join(self.root_path, 'profile_information')):
@@ -126,8 +126,44 @@ class FacebookStatistics:
         :param thread_dir: directory to parse conversation from (AdamSulko_3c954401d0 for example)
         :return: parsed conversation
         """
-        with open(path.join(self.root_path, 'messages', thread_dir, 'message_1.json'),
-                  encoding='raw_unicode_escape') as f:
+
+        # absolute path to the thread directory
+        thread_path = path.join(self.root_path, 'messages', thread_dir)
+
+        # listing all the files in thread directory
+        files_in_dir = os.listdir(thread_path)
+
+        parsed_files: List[NamedConversation] = []
+
+        # iterating through the listed files
+        for name in files_in_dir:
+            # file's absolute path
+            name_path = path.join(thread_path, name)
+
+            if ( not os.path.isfile(name_path) ):
+                continue
+
+            # parsing the file and appending it to parsed_files if not None
+            c = self.parse_file(name_path)
+            if ( c != None ):
+                parsed_files.append(c)
+
+
+        # if none of the files have been successfully parsed return None
+        if ( len(parsed_files) == 0 ):
+            return None
+
+        # appending messages from all parsed files to the first one
+        conversation = parsed_files[0]
+        for c in parsed_files[1:]:
+            conversation[2].extend(c[2])
+
+
+        return conversation
+
+
+    def parse_file(self, path: str) -> NamedConversation:
+        with open(path, encoding='raw_unicode_escape') as f:
 
             # Facebook export tool produces invalid JSONs. Here we try to fix
             # wrongly encoded characters.
