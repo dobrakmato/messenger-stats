@@ -88,9 +88,15 @@ class FacebookStatistics:
         """
         subfolders = os.listdir(path.join(self.root_path, 'messages'))
 
+        i = 0
         time_start = time()
         for subfolder in subfolders:
-            i = 0
+
+            # facebook started putting used stickers used in conversations into
+            # folder called 'stickers_used' which is placed alongside the threads.
+            if subfolder == 'stickers_used':
+                continue
+
             folders = os.listdir(path.join(self.root_path,
                                            'messages',
                                            subfolder))
@@ -116,7 +122,7 @@ class FacebookStatistics:
                     if not (self.exclude_group_chats and len(named_conversation[1]) > 2):
                         self.conversations.append(named_conversation)
 
-        print(f'Parsed {i-1} conversations in {time() - time_start} seconds.')
+        print(f'Parsed {i - 1} conversations in {time() - time_start} seconds.')
 
     def parse_conversation(self, thread_dir: str) -> NamedConversation:
         """
@@ -140,17 +146,16 @@ class FacebookStatistics:
             # file's absolute path
             name_path = path.join(thread_path, name)
 
-            if ( not os.path.isfile(name_path) ):
+            if not os.path.isfile(name_path):
                 continue
 
             # parsing the file and appending it to parsed_files if not None
             c = self.parse_file(name_path)
-            if ( c != None ):
+            if c != None:
                 parsed_files.append(c)
 
-
         # if none of the files have been successfully parsed return None
-        if ( len(parsed_files) == 0 ):
+        if len(parsed_files) == 0:
             return None
 
         # appending messages from all parsed files to the first one
@@ -158,9 +163,7 @@ class FacebookStatistics:
         for c in parsed_files[1:]:
             conversation[2].extend(c[2])
 
-
         return conversation
-
 
     def parse_file(self, path: str) -> NamedConversation:
         with open(path, encoding='raw_unicode_escape') as f:
@@ -267,7 +270,7 @@ if __name__ == '__main__':
     print('You invoked script as interactive shell.')
     separator()
     print('Please enter path to unzipped Facebook export ' +
-          'directory (the one which contains subfolder messages and JSON files).')
+          'directory (the one which contains sub-folder `messages`).')
 
     # Check if user provided argument and wants to use it as root folder for
     # generating statistics from.
